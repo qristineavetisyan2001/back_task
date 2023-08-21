@@ -1,10 +1,13 @@
 <?php
-
 header('Access-Control-Allow-Origin: http://localhost:8080');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Allow-Headers: Content-Type, AUTHORIZATION');
-header('Access-Control-Allow-Credentials: true'); // If needed
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
+header('Access-Control-Allow-Headers: Authorization, Content-Type');
+header('Access-Control-Allow-Credentials: true');
+
+
+// Set appropriate CORS headers for the 'saveChanges' endpoint
+
+
 class AdminController extends Controller {
     public function index(){
         $this->views("admin/index");
@@ -37,6 +40,30 @@ class AdminController extends Controller {
         echo json_encode($res);
     }
 
+    public function deletePost(){
+        $data = json_decode(file_get_contents("php://input"), TRUE);
+        $path = "public/uploads/homeslider";
+        $datas = $this->models('homeslider')->select()->where('id', '=' , $data)->execute()->fetchRow();
+            $imageFilename = $datas['image'];
+            $fullImagePath = $path . '/' . $imageFilename;
+
+            if (file_exists($fullImagePath)) {
+                if (unlink($fullImagePath)) {
+                    $delete = $this->models('homeslider')->delete()->where('id','=' , $data)->execute();
+                    if ($delete) {
+                        echo json_encode(array("status" => "success", "message" => "Post deleted successfully"));
+                    } else {
+                        echo json_encode(array("status" => "error", "message" => "Error deleting post from database"));
+                    }
+                } else {
+                    echo json_encode(array("status" => "error", "message" => "Error unlinking file"));
+                }
+            } else {
+                echo json_encode(array("status" => "error", "message" => "File not found"));
+            }
+
+    }
+
     public function dashboard(){
         $titleEng = $_POST['titleEng'];
         $titleArm = $_POST['titleArm'];
@@ -55,14 +82,41 @@ class AdminController extends Controller {
                     $_POST['image'] = $upload['file_name'];
 
                 }
-
        /* $insert = */$this->models('homeslider')->insert($_POST)->execute();
        /* if($insert){
             $response = ['message' => $_POST];
         }*/
 
         $data = $this-> models('homeslider')->select()-> execute()->fetchAll();
+        /*var_dump($data);exit;*/
         echo json_encode($data);
+    }
+    public function get(){
+        $data = json_decode(file_get_contents("php://input"), TRUE);
+        $data = $this->models('homeslider')->select()->where('id', '=' , $data)->execute()->fetchRow();
+        $data['image'] =  URL_ROOT.'/public/uploads/homeslider/'.$data['image'];
+        //var_dump( $data['image']);
+        echo json_encode($data);
+    }
+    public function saveChanges(){
+        $postId = $_POST['postid'];
+        unset($_POST['postid']);
+        if($_FILES['image']['name'] != ''){
+            $edit_data = $this-> models('homeslider')->select()->where('id', '=' , $postId)-> execute()->fetchRow();
+            $path = "public/uploads/homeslider";
+            $imageFilename = $edit_data['image'];
+            $fullImagePath = $path . '/' . $imageFilename;
+            if (file_exists($fullImagePath)) {
+                unlink($fullImagePath);
+                $upload = file_upload($_FILES['image'],'homeslider');
+                if(array_key_exists("success",$upload)){
+                    $_POST['image'] = $upload['file_name'];
+                }
+            }
+        } else{
+            $_POST['image'] = $_POST['image'];
+        }
+        $update = $this-> models('homeslider')->update_array($_POST)->where('id', '=' , $postId)->execute();
     }
 
     public function getPost(){

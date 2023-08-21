@@ -4,6 +4,8 @@ class Database
     protected $table_name;
     private $conn;
     private $str_query;
+    private $str_q;
+
     private $query;
     public function __construct()
     {
@@ -13,6 +15,24 @@ class Database
     {
         $this->str_query = "SELECT * FROM ".$this->table_name;
         return $this;
+    }
+    public function delete()
+    {
+        $this->str_query = "DELETE FROM ".$this->table_name;
+        return $this;
+    }
+    public function update($fild_name, $op, $value)
+    {
+        $this->str_query = "UPDATE".$this->table_name." SET".$fild_name . $op ."'". $value."'";;
+        return $this;
+    }
+    public function update_array($data)
+    {
+        foreach($data as $key => $value){
+            $this->str_q .= $key .' = '."'".$value."', ";
+        }
+        $this->str_query = 'UPDATE '.$this->table_name.' SET '.substr($this->str_q, 0, -2);
+        return  $this;
     }
     public function where($fild, $op ,$val)
     {
@@ -25,6 +45,14 @@ class Database
         }
         return $this;
     }
+    public function where_in($fild, $value){
+        $this->str_query .= " WHERE ".$fild." IN"."(".$value.")";
+        return $this;
+    }
+    public function fetchRow(){
+        return $this->str_query = mysqli_fetch_assoc($this->query);
+    }
+
     public function mysqli_fetch_assoc(){
         $this->str_query = mysqli_fetch_assoc($this->query);
         return $this;
