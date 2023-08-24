@@ -99,24 +99,25 @@ class AdminController extends Controller {
         echo json_encode($data);
     }
     public function saveChanges(){
-        $postId = $_POST['postid'];
-        unset($_POST['postid']);
-        if($_FILES['image']['name'] != ''){
+        $postId = $_POST['id'];
+        unset($_POST['id']);
+        $_POST['image'] = $_FILES['image'];
+        if($_POST['image'] != ''){
             $edit_data = $this-> models('homeslider')->select()->where('id', '=' , $postId)-> execute()->fetchRow();
             $path = "public/uploads/homeslider";
             $imageFilename = $edit_data['image'];
             $fullImagePath = $path . '/' . $imageFilename;
             if (file_exists($fullImagePath)) {
                 unlink($fullImagePath);
-                $upload = file_upload($_FILES['image'],'homeslider');
+                $upload = file_upload($_POST['image'],'homeslider');
                 if(array_key_exists("success",$upload)){
                     $_POST['image'] = $upload['file_name'];
                 }
             }
-        } else{
-            $_POST['image'] = $_POST['image'];
         }
+
         $update = $this-> models('homeslider')->update_array($_POST)->where('id', '=' , $postId)->execute();
+        echo json_encode($update);
     }
 
     public function getPost(){
